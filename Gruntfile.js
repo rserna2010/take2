@@ -3,20 +3,14 @@
 module.exports = function(grunt) {
 	grunt.initConfig({
 		clean: {
-			all: {
-				files: {
-					src: ['build/', 'dist/', 'report/', 'contants/', 'contents/images/', 'contents/static/']
-				}
+			files: {
+				src: ['build/', 'dist/', 'report/', 'contants/', 'contents/images/', 'contents/static/']
 			}
 		},
 
 		concat: {
 			options: {
 				separator: ';\n'
-			},
-			bootstrapModal: {
-				src: ['bower/bootstrap/js/bootstrap-transition.js', 'bower/bootstrap/js/bootstrap-modal.js', 'bower/isotope/jquery.isotope.min.js'],
-				dest: 'contents/static/js/customer-lib.js'
 			}
 		},
 
@@ -25,21 +19,7 @@ module.exports = function(grunt) {
 				files: {
 					'contents/static/js/balanced.min.js': [
 						'static/js/balanced.js'
-					],
-					'contents/static/js/customer-lib.min.js': [
-						'contents/static/js/customer-lib.js'
-					],
-					'contents/static/js/carousel.min.js': [
-						'bower/bootstrap/js/bootstrap-carousel.js'
 					]
-				}
-			}
-		},
-
-		bower: {
-			install: {
-				options: {
-					copy: false
 				}
 			}
 		},
@@ -83,11 +63,6 @@ module.exports = function(grunt) {
 			preview: {
 				options: {
 					action: 'preview'
-				}
-			},
-			dev: {
-				options: {
-					config: './config-dev.json'
 				}
 			}
 		},
@@ -143,7 +118,7 @@ module.exports = function(grunt) {
 				],
 				tasks: ['concat', 'uglify', 'wintersmith:build'],
 				options: {
-					livereload: 35730
+					livereload: true
 				}
 			},
 			fonts: {
@@ -152,7 +127,7 @@ module.exports = function(grunt) {
 				],
 				tasks: ['copy:fonts', 'wintersmith:build'],
 				options: {
-					livereload: 35730
+					livereload: true
 				}
 			},
 			images: {
@@ -161,7 +136,7 @@ module.exports = function(grunt) {
 				],
 				tasks: ['copy:images', 'wintersmith:build'],
 				options: {
-					livereload: 35730
+					livereload: true
 				}
 			},
 			css: {
@@ -170,7 +145,7 @@ module.exports = function(grunt) {
 				],
 				tasks: ['less:development', 'wintersmith:build'],
 				options: {
-					livereload: 35730
+					livereload: true
 				}
 			},
 			md: {
@@ -181,21 +156,28 @@ module.exports = function(grunt) {
 				],
 				tasks: ['wintersmith:build'],
 				options: {
-					livereload: 35730
+					livereload: true
 				}
 			}
 		},
 
 		open: {
 			dev: {
-				path: 'http://localhost:8765/'
-			},
+				path: 'http://localhost:8080/'
+			}
 		},
 
 		connect: {
 			server: {
 				options: {
-					port: 8765,
+					port: 8080,
+					base: './build/'
+				}
+			},
+			vagrant: {
+				options: {
+					port: 8080,
+					hostname: '10.0.0.2',
 					base: './build/'
 				}
 			}
@@ -366,20 +348,9 @@ module.exports = function(grunt) {
 		});
 	});
 
-	grunt.task.registerTask('wintersmithDevConfig', 'A task that makes a dev config if one is missing.', function() {
-		if (grunt.file.exists('./config-dev.json')) {
-			return;
-		}
-
-		var wintersmithConfig = grunt.file.readJSON('./config.json');
-		wintersmithConfig.locals = wintersmithConfig.locals || {};
-		wintersmithConfig.locals.debug = true;
-		grunt.file.write('./config-dev.json', JSON.stringify(wintersmithConfig, null, 4));
-	});
-
 	// Subtasks
-	grunt.registerTask('_builddev', ['clean:all', 'bower:install', 'concat', 'uglify', 'less:development', 'copy']);
-	grunt.registerTask('_buildprod', ['clean:all', 'bower:install', 'verify', 'concat', 'uglify', 'less:production', 'copy']);
+	grunt.registerTask('_builddev', ['clean', 'concat', 'uglify', 'less:development', 'copy']);
+	grunt.registerTask('_buildprod', ['clean', 'verify', 'concat', 'uglify', 'less:production', 'copy']);
 
 	// Uploads to s3. Requires environment variables to be set if the bucket
 	// you're uploading to doesn't have public write access.
@@ -391,7 +362,10 @@ module.exports = function(grunt) {
 
 	// Register the main build/dev tasks
 	grunt.registerTask('build', ['_buildprod', 'wintersmith:build', 'hashres', 'htmlmin:dist']);
-	grunt.registerTask('dev', ['_builddev', 'wintersmithDevConfig', 'wintersmith:dev', 'connect', 'open', 'watch']);
+	grunt.registerTask('dev', ['_builddev', 'wintersmith:build', 'connect:server', 'open', 'watch']);
+
+	// Register a task in vagrant
+	grunt.registerTask('vagrant', ['_builddev', 'wintersmith:build', 'connect:vagrant', 'watch']);
 
 	// Register a test task
 	grunt.registerTask('test', ['build']);
